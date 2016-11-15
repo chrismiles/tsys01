@@ -24,6 +24,7 @@ Distributed as-is; no warranty is given.
 
 #include <iostream>
 #include <errno.h>
+#include <wiringPi.h>
 #include <wiringPiSPI.h>
 #include <unistd.h>
 #include <inttypes.h> // for uint16_t
@@ -60,38 +61,31 @@ void readCalibrationParameters()
    buffer[1] = 0;
    buffer[2] = 0;
    wiringPiSPIDataRW(CHANNEL, buffer, 3);
-   //cout << " buffer[0] = " << hex << (int)buffer[0] << " buffer[1] = " << hex << (int)buffer[1] << endl;
-   cout << " buffer[1] = " << hex << (int)buffer[1] << " buffer[2] = " << hex << (int)buffer[2] << endl;
-   //k4 = (uint16_t)(((uint16_t)buffer[1]) << 8 + (uint16_t)buffer[2]);
+   //cout << " buffer[1] = " << hex << (int)buffer[1] << " buffer[2] = " << hex << (int)buffer[2] << endl;
    k4 = buffer[1] * 256 + buffer[2];
 
    buffer[0] = CMD_READ_PROM_ADDR_2;
    buffer[1] = 0;
    buffer[2] = 0;
    wiringPiSPIDataRW(CHANNEL, buffer, 3);
-   //cout << " buffer[0] = " << hex << (int)buffer[0] << " buffer[1] = " << hex << (int)buffer[1] << endl;
-   cout << " buffer[1] = " << hex << (int)buffer[1] << " buffer[2] = " << hex << (int)buffer[2] << endl;
    k3 = buffer[1] * 256 + buffer[2];
 
    buffer[0] = CMD_READ_PROM_ADDR_3;
    buffer[1] = 0;
    buffer[2] = 0;
    wiringPiSPIDataRW(CHANNEL, buffer, 3);
-   cout << " buffer[0] = " << hex << (int)buffer[0] << " buffer[1] = " << hex << (int)buffer[1] << endl;
    k2 = buffer[1] * 256 + buffer[2];
 
    buffer[0] = CMD_READ_PROM_ADDR_4;
    buffer[1] = 0;
    buffer[2] = 0;
    wiringPiSPIDataRW(CHANNEL, buffer, 3);
-   cout << " buffer[0] = " << hex << (int)buffer[0] << " buffer[1] = " << hex << (int)buffer[1] << endl;
    k1 = buffer[1] * 256 + buffer[2];
 
    buffer[0] = CMD_READ_PROM_ADDR_5;
    buffer[1] = 0;
    buffer[2] = 0;
    wiringPiSPIDataRW(CHANNEL, buffer, 3);
-   cout << " buffer[0] = " << hex << (int)buffer[0] << " buffer[1] = " << hex << (int)buffer[1] << endl;
    k0 = buffer[1] * 256 + buffer[2];
 
    cout << " k4 =  " << dec << k4 << endl;
@@ -109,7 +103,7 @@ double readTemperature() {
    buffer[0] = CMD_START_ADC_CONVERSION;
    wiringPiSPIDataRW(CHANNEL, buffer, 1);
 
-   sleep(1); //TODO: shorter wait
+   delay(10); // milliseconds
 
    // Read ADC result
    //cout << "Reading ADC result (0x00)" << endl;
@@ -135,27 +129,29 @@ double readTemperature() {
    return t;
 }
 
-int main()
-{
-   int fd, result;
-   unsigned char buffer[100];
-
-   cout << "Initializing" << endl ;
-
+void initialize() {
    // Configure the interface.
    // CHANNEL insicates chip select,
    // 500000 indicates bus speed.
-   fd = wiringPiSPISetup(CHANNEL, 500000);
+   int fd = wiringPiSPISetup(CHANNEL, 500000);
 
    cout << "Init result: " << fd << endl;
+}
 
-   // reset
+void reset() {
+   unsigned char buffer[100];
+
    cout << "Sending reset (0x1E)" << endl;
    buffer[0] = CMD_RESET;
    wiringPiSPIDataRW(CHANNEL, buffer, 1);
 
-   sleep(1);
+   delay(4); // milliseconds
+}
 
+int main()
+{
+   initialize();
+   reset();
    readCalibrationParameters();
 
    do {
